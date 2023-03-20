@@ -1,6 +1,6 @@
 import { GAME_STATUS, PAIRS_COUNT } from './constants.js'
-import { getColorElementList, getColorListElement, getInActiveColorList } from './selectors.js'
-import { getRandomColorPairs } from './utils.js';
+import { getColorElementList, getColorListElement, getInActiveColorList, getPlayAgainButton } from './selectors.js'
+import { getRandomColorPairs, showPlayAgainButton,hidePlayAgainButton, setTimerText } from './utils.js'
 
 // Global variables
 let selections = []
@@ -15,7 +15,8 @@ let gameStatus = GAME_STATUS.PLAYING
 
 function handleColorClick(liElement) {
     const shouldBlockClick = [GAME_STATUS.BLOCKING, GAME_STATUS.FINISHED].includes(gameStatus);
-  if (!liElement || shouldBlockClick) return;
+    const isClicked = liElement.classList.contains('active');
+  if (!liElement || shouldBlockClick || isClicked) return
 
   liElement.classList.add('active');
 
@@ -33,7 +34,11 @@ function handleColorClick(liElement) {
     const isWin = getInActiveColorList().length === 0;
     if (isWin) {
         // show replay button
+        showPlayAgainButton();
         // show u win
+        setTimerText('YOU WIN!');
+
+        gameStatus = GAME_STATUS.FINISHED;
     }
 
     selections = [];
@@ -42,6 +47,8 @@ function handleColorClick(liElement) {
 
   // in case not match
   // remove active class
+  gameStatus = GAME_STATUS.BLOCKING;
+
   setTimeout(() => {
     selections[0].classList.remove('active')
     selections[1].classList.remove('active')
@@ -49,7 +56,10 @@ function handleColorClick(liElement) {
     // reset new turn
     selections = []
 
-    gameStatus = GAME_STATUS.BLOCKING;
+    // race-condition check with handleTimerFinish
+    if (gameStatus !== GAME_STATUS.FINISHED) {
+      gameStatus = GAME_STATUS.PLAYING
+    }
   }, 500);
 
 
@@ -77,9 +87,37 @@ function attachEventForColorList() {
 
     // event delegation
     ulElement.addEventListener('click', (event) => {
+        // console.log("hihi");
         if (event.target.tagName !== 'LI') return;
         handleColorClick(event.target);
     })
+}
+
+
+function resetGame() {
+    // reset global variables
+    selections = [];
+    gameStatus = GAME_STATUS.PLAYING;
+    
+    // reset dom elements
+    // - remove active class from li
+    const colorList = getColorElementList();
+    for (const colorElement of colorList) {
+        colorElement.classList.remove('active');
+    }
+    // - hide replay button
+    hidePlayAgainButton();
+    // - clear u win / timeout text
+    setTimerText('');
+    // re-generate color pairs
+    initColors();
+}
+
+function attachEventForPlayAgainButton() {
+    const playAgainButton = getPlayAgainButton();
+    if (!playAgainButton)   return;
+
+    playAgainButton.addEventListener('click', resetGame);
 }
 
 // main
@@ -87,4 +125,6 @@ function attachEventForColorList() {
     initColors();
 
     attachEventForColorList();
+
+    attachEventForPlayAgainButton();
 })()
