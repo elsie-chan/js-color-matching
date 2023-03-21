@@ -1,10 +1,34 @@
-import { GAME_STATUS, PAIRS_COUNT } from './constants.js'
-import { getColorElementList, getColorListElement, getInActiveColorList, getPlayAgainButton } from './selectors.js'
-import { getRandomColorPairs, showPlayAgainButton,hidePlayAgainButton, setTimerText } from './utils.js'
+import { GAME_STATUS, GAME_TIME, PAIRS_COUNT } from './constants.js'
+import { getColorElementList, getColorListElement, getInActiveColorList, getPlayAgainButton, getTimerElement } from './selectors.js'
+import {
+  getRandomColorPairs,
+  showPlayAgainButton,
+  hidePlayAgainButton,
+  setTimerText,
+  createTimer,
+} from './utils.js'
 
 // Global variables
 let selections = []
 let gameStatus = GAME_STATUS.PLAYING
+let timer = createTimer({
+  seconds: GAME_TIME,
+  onChange: handleTimerChange,
+  onFinish: handleTimerFinish,
+})
+
+function handleTimerChange(second) {
+    const fullSecond = `0${second}`.slice(-2);
+    setTimerText(fullSecond)
+}
+
+function handleTimerFinish() {
+    // end game
+    gameStatus = GAME_STATUS.FINISHED;
+    setTimerText('GAME OVER!');
+    showPlayAgainButton();
+}
+
 
 // TODOs
 // 1. Generating colors using https://github.com/davidmerfield/randomColor
@@ -37,6 +61,7 @@ function handleColorClick(liElement) {
         showPlayAgainButton();
         // show u win
         setTimerText('YOU WIN!');
+        timer.clear();
 
         gameStatus = GAME_STATUS.FINISHED;
     }
@@ -60,10 +85,7 @@ function handleColorClick(liElement) {
     if (gameStatus !== GAME_STATUS.FINISHED) {
       gameStatus = GAME_STATUS.PLAYING
     }
-  }, 500);
-
-
-  
+  }, 500);  
 }
 
 function initColors() {
@@ -93,6 +115,11 @@ function attachEventForColorList() {
     })
 }
 
+function startTimer() {
+    // const timerElement = getTimerElement();
+    timer.start();
+}
+
 
 function resetGame() {
     // reset global variables
@@ -111,6 +138,8 @@ function resetGame() {
     setTimerText('');
     // re-generate color pairs
     initColors();
+
+    startTimer();
 }
 
 function attachEventForPlayAgainButton() {
@@ -127,4 +156,6 @@ function attachEventForPlayAgainButton() {
     attachEventForColorList();
 
     attachEventForPlayAgainButton();
+
+    startTimer();
 })()
